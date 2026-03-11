@@ -1,14 +1,14 @@
 const cgiService = require('../services/cgiService');
 
 const mvrOntario = async (req, res) => {
-    const { username, password, onBehalfOf } = req.body;
+    const { onBehalfOf } = req.body;
 
-    if (!username || !password) {
-        return res.status(400).json({ error: 'Missing username or password' });
+    if (!onBehalfOf) {
+        return res.status(400).json({ error: 'Missing onBehalfOf' });
     }
 
     try {
-        const pdfBuffer = await cgiService.runMvrOntarioWorkflow(username, password, onBehalfOf);
+        const pdfBuffer = await cgiService.runMvrOntarioWorkflow(onBehalfOf);
 
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader('Content-Disposition', 'attachment; filename="report.pdf"');
