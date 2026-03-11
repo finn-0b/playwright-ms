@@ -8,8 +8,8 @@ services:
       - .env
     restart: unless-stopped
     networks:
-      - web_network
+      - my-project_web_network
 
 networks:
-  web_network:
+  my-project_web_network:
     external: true
