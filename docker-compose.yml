@@ -1,0 +1,15 @@
+services:
+  playwright-api:
+    build: .
+    container_name: playwright-api
+    ports:
+      - "8080:8080"
+    env_file:
+      - .env
+    restart: unless-stopped
+    networks:
+      - web_network
+
+networks:
+  web_network:
+    external: true
