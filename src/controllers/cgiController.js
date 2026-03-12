@@ -1,14 +1,18 @@
 const cgiService = require('../services/cgiService');
 
 const mvrOntario = async (req, res) => {
-    const { onBehalfOf } = req.body;
+    const { onBehalfOf, license } = req.body;
 
     if (!onBehalfOf) {
         return res.status(400).json({ error: 'Missing onBehalfOf' });
     }
 
+    if (!license) {
+        return res.status(400).json({ error: 'Missing license' });
+    }
+
     try {
-        const pdfBuffer = await cgiService.runMvrOntarioWorkflow(onBehalfOf);
+        const pdfBuffer = await cgiService.runMvrOntarioWorkflow(license, onBehalfOf);
 
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader('Content-Disposition', 'attachment; filename="report.pdf"');
