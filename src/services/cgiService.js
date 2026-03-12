@@ -44,17 +44,28 @@ const runMvrOntarioWorkflow = async (license, onBehalfOf = 5) => {
 
         await page.getByRole('button', { name: 'Get Report' }).click();
 
+        // Set up download listener BEFORE clicking to avoid race condition
+        const downloadPromise = page.waitForEvent('download', { timeout: 60000 });
 
-        const downloadPromise = page.waitForEvent('download');
-        await page.locator('figure > span').click();
+        // Try multiple selectors in case the CGI site structure varies
+        const downloadBtn = page.locator('figure > span, a[href*="download"], button:has-text("Download"), a:has-text("Download PDF")').first();
+        await downloadBtn.click();
+
         const download = await downloadPromise;
 
-        // Fix: Use download.path() and fs to get the buffer
+        // Use download.path() and fs to get the buffer
         const downloadPath = await download.path();
         const buffer = fs.readFileSync(downloadPath);
         return buffer;
 
     } catch (error) {
+        // Save a screenshot so you can see exactly what the page looked like on failure
+        try {
+            await page.screenshot({ path: '/tmp/cgi-debug.png', fullPage: true });
+            console.error('CGI debug screenshot saved to /tmp/cgi-debug.png');
+        } catch (screenshotErr) {
+            console.error('Could not save debug screenshot:', screenshotErr.message);
+        }
         throw error;
     } finally {
         await context.close();

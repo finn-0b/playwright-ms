@@ -12,3 +12,12 @@ const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
     console.log(`Playwright microservice running on port ${PORT}`);
 });
+
+// Prevent unhandled Playwright errors from crashing the process
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
+process.on('uncaughtException', (err) => {
+    console.error('Uncaught Exception:', err);
+});
