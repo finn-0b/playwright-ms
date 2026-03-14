@@ -38,7 +38,9 @@ const runMvrOntarioWorkflow = async (license, onBehalfOf = 5) => {
 
         await page.locator('#ctl00_MainContentPlaceHolder_ddReferencePurpose').selectOption('New Business');
 
-        await page.getByRole('textbox', { name: 'Reference' }).fill('-') || await page.locator('#ctl00_MainContentPlaceHolder_ddReferencePurpose').selectOption('New Business');
+        await page.getByRole('textbox', { name: 'Reference' }).click() || await page.getByRole('textbox', { name: 'Reference' }).fill('-')  
+        
+        await page.locator('#ctl00_MainContentPlaceHolder_ddReferencePurpose').selectOption('New Business');
 
 
         await page.getByLabel('Disclose').selectOption('Unknown');

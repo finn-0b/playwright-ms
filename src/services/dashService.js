@@ -30,17 +30,44 @@ const runDashOntarioWorkflow = async (license, BehalfOf = "25 Years - Intact - A
 
 
 
+        // Prepare to handle the PDF either as a native file download (headless) or a fetchable new tab (headful)
+        const downloadPromise = new Promise((resolve, reject) => {
+            const handleDownload = async (download) => {
+                try {
+                    const path = await download.path();
+                    const buffer = await fs.promises.readFile(path);
+                    resolve(buffer);
+                } catch (e) {
+                    reject(e);
+                }
+            };
+            page.on('download', handleDownload);
+            context.on('page', newPage => newPage.on('download', handleDownload));
+            setTimeout(() => reject(new Error('Download timeout')), 30000);
+        });
+
         const page1Promise = page.waitForEvent('popup');
         await page.getByRole('button', { name: 'Open PDF' }).click();
-        const page1 = await page1Promise;
 
-        // Wait for PDF to load in the background
-        await page1.waitForLoadState('networkidle');
+        const fetchUrlPromise = (async () => {
+            const page1 = await page1Promise;
+            await page1.waitForLoadState('networkidle', { timeout: 30000 });
+            const url = page1.url();
+            if (!url || url === 'about:blank' || url.startsWith('chrome-error:')) {
+                throw new Error('Invalid URL (likely intercepted as a download natively)');
+            }
+            const response = await context.request.get(url);
+            return await response.body();
+        })();
 
-        // Instead of clicking the download button in the PDF viewer
-        // (which is hard to reach in Shadow DOM), we fetch the body directly.
-        const response = await context.request.get(page1.url());
-        const buffer = await response.body();
+        // Promise.any resolves with the first successful value
+        const buffer = await Promise.any([
+            downloadPromise,
+            fetchUrlPromise
+        ]).catch(err => {
+            throw new Error(`Failed to get PDF: ${err.message || 'Both fetch and download failed'}`);
+        });
+
         return buffer;
 
     } catch (error) {
