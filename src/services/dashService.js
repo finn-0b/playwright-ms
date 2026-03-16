@@ -1,7 +1,7 @@
 const { launchBrowser } = require('./baseBrowser');
 const fs = require('fs');
 
-const runDashOntarioWorkflow = async (license, BehalfOf = "25 Years - Intact - All") => {
+const runDashOntarioWorkflow = async (license, onBehalfOf = "25 Years - Intact - All") => {
     const browser = await launchBrowser();
     const context = await browser.newContext();
     const page = await context.newPage();
@@ -13,7 +13,7 @@ const runDashOntarioWorkflow = async (license, BehalfOf = "25 Years - Intact - A
         await page.getByTestId('username').fill(process.env.DASH_USERNAME);
         await page.getByRole('button', { name: 'Log In' }).click();
         await page.locator('#i0118').fill(process.env.DASH_PASSWORD);
-        await page.getByRole('button', { name: 'Sign in' }).click();
+        await page.locator('#i0118').press('Enter');
         await page.getByRole('button', { name: 'No' }).click();
         await page.getByTestId('menuTile-driverReport').click();
         await page.getByTestId('driverLicenceNumber').fill(`${license}`);
@@ -22,7 +22,7 @@ const runDashOntarioWorkflow = async (license, BehalfOf = "25 Years - Intact - A
 
 
         await page.locator('#numberOfYears').click();
-        await page.getByRole('option', { name: `${BehalfOf}` }).click();
+        await page.getByRole('option', { name: `${onBehalfOf}` }).click();
 
 
         await page.getByTestId('btnSearch').click();
