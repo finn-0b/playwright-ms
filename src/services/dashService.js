@@ -49,28 +49,24 @@ const runDashOntarioWorkflow = async (license, onBehalfOf = "25 Years - Intact -
         const page1Promise = page.waitForEvent('popup');
         await page.getByRole('button', { name: 'Open PDF' }).click();
 
-        const fetchUrlPromise = (async () => {
-            const page1 = await page1Promise;
-            await page1.waitForLoadState('networkidle', { timeout: 30000 });
-            const url = page1.url();
-            if (!url || url === 'about:blank' || url.startsWith('chrome-error:')) {
-                throw new Error('Invalid URL (likely intercepted as a download natively)');
-            }
-            const response = await context.request.get(url);
-            return await response.body();
-        })();
-
-        // Promise.any resolves with the first successful value
-        const buffer = await Promise.any([
-            downloadPromise,
-            fetchUrlPromise
-        ]).catch(err => {
-            throw new Error(`Failed to get PDF: ${err.message || 'Both fetch and download failed'}`);
-        });
-
+        const page1 = await page1Promise;
+        await page1.waitForLoadState('networkidle', { timeout: 30000 });
+        const url = page1.url();
+        if (!url || url === 'about:blank' || url.startsWith('chrome-error:')) {
+            throw new Error('Invalid URL (likely intercepted as a download natively)');
+        }
+        const response = await context.request.get(url);
+        const buffer = await response.body();
         return buffer;
 
     } catch (error) {
+        // Save a screenshot so you can see exactly what the page looked like on failure
+        try {
+            await page.screenshot({ path: '/tmp/dash-debug.png', fullPage: true });
+            console.error('dash debug screenshot saved to /tmp/dash-debug.png');
+        } catch (screenshotErr) {
+            console.error('Could not save debug screenshot:', screenshotErr.message);
+        }
         throw error;
     } finally {
         await context.close();
