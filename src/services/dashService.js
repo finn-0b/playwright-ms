@@ -28,37 +28,22 @@ const runDashOntarioWorkflow = async (license, onBehalfOf = "25 Years - Intact -
         await page.getByTestId('btnSearch').click();
         await page.getByTestId('getReportBtn').click();
 
-
-
         // Prepare to handle the PDF either as a native file download (headless) or a fetchable new tab (headful)
-        const downloadPromise = new Promise((resolve, reject) => {
-            const handleDownload = async (download) => {
-                try {
-                    const path = await download.path();
-                    const buffer = await fs.promises.readFile(path);
-                    resolve(buffer);
-                } catch (e) {
-                    reject(e);
-                }
-            };
-            page.on('download', handleDownload);
-            context.on('page', newPage => newPage.on('download', handleDownload));
-            setTimeout(() => reject(new Error('Download timeout')), 30000);
-        });
-
         const page1Promise = page.waitForEvent('popup');
         await page.getByRole('button', { name: 'Open PDF' }).click();
 
         const page1 = await page1Promise;
         await page1.waitForLoadState('networkidle', { timeout: 30000 });
-        const url = page1.url();
-        if (!url || url === 'about:blank' || url.startsWith('chrome-error:')) {
-            throw new Error('Invalid URL (likely intercepted as a download natively)');
-        }
-        const response = await context.request.get(url);
-        const buffer = await response.body();
-        return buffer;
+        await page1.locator('iframe[name="72F6486158A966F80B1688DB4A7BB7B3"]').contentFrame().getByRole('button', { name: 'Download' }).click();
+        const downloadPromise = page1.waitForEvent('download');
 
+        await page1.locator('iframe[name="72F6486158A966F80B1688DB4A7BB7B3"]').contentFrame().getByRole('button', { name: 'Download' }).click();
+        const download = await downloadPromise;
+
+        const downloadPath = await download.path();
+        const buffer = fs.readFileSync(downloadPath);
+        return buffer;
+        
     } catch (error) {
         // Save a screenshot so you can see exactly what the page looked like on failure
         try {

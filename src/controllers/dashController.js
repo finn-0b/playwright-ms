@@ -1,7 +1,11 @@
 const dashService = require('../services/dashService');
 
 const runReport = async (req, res) => {
-    const { license, onBehalfOf } = req.body;
+    const { onBehalfOf, license } = req.body;
+
+    if (!onBehalfOf) {
+        return res.status(400).json({ error: 'Missing onBehalfOf' });
+    }
 
     if (!license) {
         return res.status(400).json({ error: 'Missing license number' });
