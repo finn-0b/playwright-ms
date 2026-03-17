@@ -17,12 +17,21 @@ const runDashOntarioWorkflow = async (license, onBehalfOf = "25 Years - Intact -
         // Navigate to report
         await page.getByTestId('menuTile-ninetyDays').click();
         await page.getByTestId('btnSearch').click();
-        await page.getByTestId('btnViewReport0').click();
+
+        // Wait for the report list to load and ensure the view button is visible
+        const viewReportBtn = page.getByTestId('btnViewReport0');
+        await viewReportBtn.waitFor({ state: 'visible', timeout: 15000 });
+        await viewReportBtn.click();
 
         // Open PDF in new tab (the browser's PDF viewer)
-        const page1Promise = page.waitForEvent('popup');
-        await page.getByRole('button', { name: 'Open PDF' }).click();
-        const page1 = await page1Promise;
+        // We use Promise.all to avoid race conditions between the click and the popup event
+        const openPdfBtn = page.getByRole('button', { name: 'Open PDF' });
+        await openPdfBtn.waitFor({ state: 'visible', timeout: 15000 });
+
+        const [page1] = await Promise.all([
+            page.waitForEvent('popup', { timeout: 30000 }),
+            openPdfBtn.click()
+        ]);
 
         // Wait for the PDF viewer to load (network idle is usually enough)
         await page1.waitForLoadState('networkidle', { timeout: 30000 });
