@@ -1,5 +1,4 @@
 const { launchBrowser } = require('./baseBrowser');
-const fs = require('fs');
 
 const runDashOntarioWorkflow = async (license, onBehalfOf = "25 Years - Intact - All") => {
     const browser = await launchBrowser();
@@ -7,45 +6,41 @@ const runDashOntarioWorkflow = async (license, onBehalfOf = "25 Years - Intact -
     const page = await context.newPage();
 
     try {
-        await page.goto('https://dash.ibc.ca/login');
-
         // Login
+        await page.goto('https://dash.ibc.ca/login');
         await page.getByTestId('username').fill(process.env.DASH_USERNAME);
         await page.getByRole('button', { name: 'Log In' }).click();
         await page.locator('#i0118').fill(process.env.DASH_PASSWORD);
         await page.locator('#i0118').press('Enter');
         await page.getByRole('button', { name: 'No' }).click();
-        await page.getByTestId('menuTile-driverReport').click();
-        await page.getByTestId('driverLicenceNumber').fill(`${license}`);
-        await page.getByRole('textbox', { name: 'All provinces' }).click();
-        await page.getByRole('option', { name: 'Ontario' }).click();
 
-
-        await page.locator('#numberOfYears').click();
-        await page.getByRole('option', { name: `${onBehalfOf}` }).click();
-
-
+        // Navigate to report
+        await page.getByTestId('menuTile-ninetyDays').click();
         await page.getByTestId('btnSearch').click();
-        await page.getByTestId('getReportBtn').click();
+        await page.getByTestId('btnViewReport0').click();
 
-        // Prepare to handle the PDF either as a native file download (headless) or a fetchable new tab (headful)
+        // Open PDF in new tab (the browser's PDF viewer)
         const page1Promise = page.waitForEvent('popup');
         await page.getByRole('button', { name: 'Open PDF' }).click();
-
         const page1 = await page1Promise;
+
+        // Wait for the PDF viewer to load (network idle is usually enough)
         await page1.waitForLoadState('networkidle', { timeout: 30000 });
-        await page1.locator('iframe[name="72F6486158A966F80B1688DB4A7BB7B3"]').contentFrame().getByRole('button', { name: 'Download' }).click();
-        const downloadPromise = page1.waitForEvent('download');
 
-        await page1.locator('iframe[name="72F6486158A966F80B1688DB4A7BB7B3"]').contentFrame().getByRole('button', { name: 'Download' }).click();
-        const download = await downloadPromise;
+        // Get the URL of the PDF (the viewer's address bar shows the actual PDF resource)
+        const pdfUrl = page1.url();
+        console.log('PDF URL:', pdfUrl); // Debug: ensure it's a direct link to a PDF
 
-        const downloadPath = await download.path();
-        const buffer = fs.readFileSync(downloadPath);
-        return buffer;
-        
+        // Use the browser context's request API (which carries cookies) to fetch the PDF
+        const response = await context.request.get(pdfUrl);
+        const pdfBuffer = await response.body();
+
+        // Close the popup tab (optional)
+        await page1.close();
+
+        return pdfBuffer;
     } catch (error) {
-        // Save a screenshot so you can see exactly what the page looked like on failure
+        // Debug screenshot on failure
         try {
             await page.screenshot({ path: '/tmp/dash-debug.png', fullPage: true });
             console.error('dash debug screenshot saved to /tmp/dash-debug.png');
@@ -60,5 +55,3 @@ const runDashOntarioWorkflow = async (license, onBehalfOf = "25 Years - Intact -
 };
 
 module.exports = { runDashOntarioWorkflow };
-
-
