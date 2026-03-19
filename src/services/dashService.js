@@ -16,8 +16,26 @@ const runDashOntarioWorkflow = async (license, onBehalfOf = "25 Years - Intact -
 
         // Navigate to report
         await page.getByTestId('menuTile-ninetyDays').click();
+        await page.waitForTimeout(2000); // Give SPA time to render
+
+        // The cookie banner might be blocking clicks or causing layout shifts
+        try {
+            const cookieBtn = page.getByRole('button', { name: 'OK', exact: true });
+            if (await cookieBtn.isVisible({ timeout: 1000 })) {
+                await cookieBtn.click();
+            }
+        } catch (e) { }
+
         await page.getByTestId('btnSearch').click();
+
+        // CRITICAL: Wait for search results to actually load from the backend!
+        // If we click the view button too fast, we cause a state/connection error on their backend.
+        await page.waitForTimeout(3000);
+
         await page.getByTestId('btnViewReport0').click();
+
+        // Wait for the report page to fully load before trying to find the Open PDF button
+        await page.waitForTimeout(2000);
 
         // Intercept the PDF response at the context level (works in headless)
         // This captures the real PDF URL from network traffic regardless of popup behavior
