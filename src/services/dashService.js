@@ -19,24 +19,34 @@ const runDashOntarioWorkflow = async (license, onBehalfOf = "25 Years - Intact -
         await page.getByTestId('btnSearch').click();
         await page.getByTestId('btnViewReport0').click();
 
-        // Open PDF in new tab (browser's PDF viewer)
-        const page1Promise = page.waitForEvent('popup');
+        // Intercept the PDF response at the context level (works in headless)
+        // This captures the real PDF URL from network traffic regardless of popup behavior
+        const pdfUrlPromise = new Promise((resolve, reject) => {
+            const timeout = setTimeout(
+                () => reject(new Error('PDF URL capture timed out after 30s')),
+                10000
+            );
+            const handler = (response) => {
+                const url = response.url();
+                if (url.includes('pdfreports')) {
+                    clearTimeout(timeout);
+                    context.off('response', handler);
+                    resolve(url);
+                }
+            };
+            context.on('response', handler);
+        });
+
+        // Click "Open PDF" — triggers a popup/new tab with the PDF
         await page.getByRole('button', { name: 'Open PDF' }).click();
-        const page1 = await page1Promise;
 
-        // Wait for PDF viewer to load
-        await page1.waitForLoadState('networkidle', { timeout: 30000 });
+        // Wait for the PDF URL from network interception
+        const pdfUrl = await pdfUrlPromise;
+        console.log('PDF URL:', pdfUrl);
 
-        // Get the PDF URL from the viewer's address bar
-        const pdfUrl = page1.url();
-        console.error('PDF URL:', pdfUrl); // optional debug
-
-        // Fetch the PDF using the authenticated browser context
+        // Fetch the PDF binary using the authenticated browser context
         const response = await context.request.get(pdfUrl);
         const pdfBuffer = await response.body();
-
-        // Close the popup tab (optional)
-        await page1.close();
 
         // Return the buffer directly – no file saving needed
         return pdfBuffer;
