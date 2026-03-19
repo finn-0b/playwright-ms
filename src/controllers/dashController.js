@@ -1,18 +1,8 @@
 const dashService = require('../services/dashService');
 
 const runReport = async (req, res) => {
-    const { onBehalfOf, license } = req.body;
-
-    if (!onBehalfOf) {
-        return res.status(400).json({ error: 'Missing onBehalfOf' });
-    }
-
-    if (!license) {
-        return res.status(400).json({ error: 'Missing license number' });
-    }
-
     try {
-        const pdfBuffer = await dashService.runDashOntarioWorkflow(license, onBehalfOf);
+        const pdfBuffer = await dashService.runDashOntarioWorkflow();
 
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader('Content-Disposition', 'attachment; filename="dash_report.pdf"');
