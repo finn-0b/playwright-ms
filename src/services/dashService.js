@@ -3,6 +3,10 @@ const { launchBrowser } = require('./baseBrowser');
 const runDashOntarioWorkflow = async (license, onBehalfOf = "25 Years - Intact - All") => {
     const browser = await launchBrowser();
     const context = await browser.newContext();
+    
+    // START TRACING: Captures screenshots, DOM snapshots, and network logs for every single step
+    await context.tracing.start({ screenshots: true, snapshots: true });
+    
     const page = await context.newPage();
 
     try {
@@ -69,6 +73,10 @@ const runDashOntarioWorkflow = async (license, onBehalfOf = "25 Years - Intact -
         // Return the buffer directly – no file saving needed
         return pdfBuffer;
     } catch (error) {
+        // STOP TRACING ON ERROR: Save the full recorded timeline to a zip file
+        console.error('Saving full execution trace to /tmp/dash-trace-error.zip');
+        await context.tracing.stop({ path: '/tmp/dash-trace-error.zip' });
+        
         // Debug screenshot on failure
         try {
             await page.screenshot({ path: '/tmp/dash-debug.png', fullPage: true });
