@@ -1,6 +1,6 @@
 const dashService = require('../services/dashService');
 
-const runReport = async (req, res) => {
+const runReport = async (_, res) => {
     try {
         const pdfBuffer = await dashService.runDashOntarioWorkflow();
 

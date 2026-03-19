@@ -1,16 +1,25 @@
 require('dotenv').config();
-const dashService = require('./src/services/dashService');
+const dashController = require('./src/controllers/dashController');
 
 (async () => {
-    // --- ⚙️ TEST CONFIGURATION ---
-    const license = 'S9275-12595-71217'; // Example license from your screenshot
-    // -----------------------------
-
     console.log(`🚀 Starting local Playwright test for DASH Report...`);
 
     try {
-        const pdfBuffer = await dashService.runDashOntarioWorkflow(license, "Years - Aviva - All Provinces");
-        console.log('✅ Success! PDF received. Buffer size:', pdfBuffer.length);
+        let capturedBuffer;
+        const mockRes = {
+            setHeader: (key, value) => console.log(`[Mock] setHeader: ${key} = ${value}`),
+            send: (buffer) => { capturedBuffer = buffer; },
+            status: function (code) {
+                console.log(`[Mock] status: ${code}`);
+                return this;
+            },
+            json: (data) => console.log(`[Mock] json:`, data)
+        };
+
+        const req = {};
+        await dashController.runReport(req, mockRes);
+
+        console.log('✅ Success! PDF received. Buffer size:', capturedBuffer ? capturedBuffer.length : 'undefined');
         console.log('Saved to dash_test_report.pdf');
     } catch (error) {
         console.error('❌ Test failed:', error);
