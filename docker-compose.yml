@@ -2,6 +2,7 @@ services:
   playwright-api:
     build: .
     container_name: playwright-api
+    shm_size: '2gb'
     ports:
       - "8080:8080"
     env_file:

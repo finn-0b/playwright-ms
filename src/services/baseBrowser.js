@@ -4,7 +4,12 @@ const launchBrowser = async () => {
     const headless = process.env.HEADLESS !== 'false';
     const browser = await chromium.launch({
         headless,
-        args: ['--no-sandbox', '--disable-setuid-sandbox'] // Critical for Docker
+        args: [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage', // Use /tmp instead of /dev/shm — fixes crashes in Docker
+            '--disable-gpu',           // No GPU in Docker, saves memory
+        ]
     });
     return browser;
 };
