@@ -3,10 +3,10 @@ const { launchBrowser } = require('./baseBrowser');
 const runDashOntarioWorkflow = async (license, onBehalfOf = "25 Years - Intact - All") => {
     const browser = await launchBrowser();
     const context = await browser.newContext();
-    
+
     // START TRACING: Captures screenshots, DOM snapshots, and network logs for every single step
     await context.tracing.start({ screenshots: true, snapshots: true });
-    
+
     const page = await context.newPage();
 
     try {
@@ -14,33 +14,19 @@ const runDashOntarioWorkflow = async (license, onBehalfOf = "25 Years - Intact -
         await page.goto('https://dash.ibc.ca/login');
         await page.getByTestId('username').fill(process.env.DASH_USERNAME);
         await page.getByRole('button', { name: 'Log In' }).click();
-        await page.locator('#i0118').fill(process.env.DASH_PASSWORD);
-        await page.locator('#i0118').press('Enter');
+        await page.getByRole('textbox', { name: 'Enter the password for olehb.' }).fill(process.env.DASH_PASSWORD);
+        await page.getByRole('button', { name: 'Sign in' }).click();
         await page.getByRole('button', { name: 'No' }).click();
 
         // Navigate to report
         await page.getByTestId('menuTile-ninetyDays').click();
         await page.waitForTimeout(2000); // Give SPA time to render
-
         // The cookie banner might be blocking clicks or causing layout shifts
-        try {
-            const cookieBtn = page.getByRole('button', { name: 'OK', exact: true });
-            if (await cookieBtn.isVisible({ timeout: 1000 })) {
-                await cookieBtn.click();
-            }
-        } catch (e) { }
-
         await page.getByTestId('btnSearch').click();
-
         // CRITICAL: Wait for search results to actually load from the backend!
         // If we click the view button too fast, we cause a state/connection error on their backend.
-        await page.waitForTimeout(3000);
-
         await page.getByTestId('btnViewReport0').click();
-
         // Wait for the report page to fully load before trying to find the Open PDF button
-        await page.waitForTimeout(2000);
-
         // Intercept the PDF response at the context level (works in headless)
         // This captures the real PDF URL from network traffic regardless of popup behavior
         const pdfUrlPromise = new Promise((resolve, reject) => {
@@ -76,7 +62,7 @@ const runDashOntarioWorkflow = async (license, onBehalfOf = "25 Years - Intact -
         // STOP TRACING ON ERROR: Save the full recorded timeline to a zip file
         console.error('Saving full execution trace to /tmp/dash-trace-error.zip');
         await context.tracing.stop({ path: '/tmp/dash-trace-error.zip' });
-        
+
         // Debug screenshot on failure
         try {
             await page.screenshot({ path: '/tmp/dash-debug.png', fullPage: true });
