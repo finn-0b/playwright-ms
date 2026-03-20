@@ -1,5 +1,6 @@
 services:
   playwright-api:
+    platform: linux/amd64   # <-- add this
     build: .
     container_name: playwright-api
     shm_size: '2gb'
@@ -12,4 +13,4 @@ services:
       - my-project
 
 networks:
-  my-project
+  my-project:

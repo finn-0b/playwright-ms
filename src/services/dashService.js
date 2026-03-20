@@ -4,8 +4,15 @@ const MAX_VIEW_RETRIES = 3;
 
 const runDashOntarioWorkflow = async (license, onBehalfOf = "25 Years - Intact - All") => {
     const browser = await launchBrowser();
-    const context = await browser.newContext();
-
+    const context = await browser.newContext({
+        userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+        locale: 'en-CA',
+        timezoneId: 'America/Toronto',
+        viewport: { width: 1280, height: 800 },
+        extraHTTPHeaders: {
+            'Accept-Language': 'en-CA,en;q=0.9',
+        }
+    });
     // START TRACING: Captures screenshots, DOM snapshots, and network logs for every single step
     await context.tracing.start({ screenshots: true, snapshots: true });
 

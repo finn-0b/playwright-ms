@@ -1,4 +1,4 @@
-const { chromium, firefox } = require('playwright');
+const { firefox } = require('playwright');
 
 const launchBrowser = async () => {
     const headless = process.env.HEADLESS !== 'false';
