@@ -1,8 +1,8 @@
-const { chromium } = require('playwright');
+const { chromium, firefox } = require('playwright');
 
 const launchBrowser = async () => {
     const headless = process.env.HEADLESS !== 'false';
-    const browser = await chromium.launch({
+    const browser = await firefox.launch({
         headless,
         args: [
             '--no-sandbox',
