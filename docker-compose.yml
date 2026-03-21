@@ -10,7 +10,9 @@ services:
       - .env
     restart: unless-stopped
     networks:
-      - my-project
+      - web_network
 
 networks:
-  my-project:
+  web_network:
+    external: true
+    name: my-project_web_network
