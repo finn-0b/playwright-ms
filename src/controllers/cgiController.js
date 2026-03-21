@@ -12,8 +12,7 @@ const mvrOntario = async (req, res) => {
     }
 
     try {
-        const pdfBuffer = await cgiService.runMvrOntarioWorkflow(onBehalfOf, license);
-
+        const pdfBuffer = await cgiService.runMvrOntarioWorkflow(license, onBehalfOf);
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader('Content-Disposition', 'attachment; filename="report.pdf"');
         res.send(pdfBuffer);
