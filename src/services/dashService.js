@@ -18,6 +18,16 @@ const runDashOntarioWorkflow = async (license, onBehalfOf = "25 Years - Intact -
 
     const page = await context.newPage();
 
+    // Block unnecessary resources (images, fonts, media) to speed up page loads significantly
+    await context.route('**/*', route => {
+        const type = route.request().resourceType();
+        if (['image', 'media', 'font'].includes(type)) {
+            route.abort();
+        } else {
+            route.continue();
+        }
+    });
+
     try {
         // Login
         await page.goto('https://dash.ibc.ca/login');
@@ -29,12 +39,13 @@ const runDashOntarioWorkflow = async (license, onBehalfOf = "25 Years - Intact -
 
         // Navigate to report
         await page.getByTestId('menuTile-ninetyDays').click();
-        await page.waitForLoadState('networkidle');
+        // Removed unnecessary and slow networkidle wait here, Playwright auto-waits for elements
 
         // Dismiss cookie banner if present — it can block clicks or cause layout shifts
         try {
             const cookieOk = page.getByRole('button', { name: 'OK' });
-            await cookieOk.click({ timeout: 3000 });
+            // Reduced timeout from 3000ms to 500ms to avoid wasting time when banner is absent
+            await cookieOk.click({ timeout: 500 });
             console.log('[DASH] Cookie banner dismissed');
         } catch {
             // Banner not present or already dismissed — continue
@@ -43,7 +54,7 @@ const runDashOntarioWorkflow = async (license, onBehalfOf = "25 Years - Intact -
         await page.getByTestId('btnSearch').click();
 
         // Wait for search results to fully load from the DASH backend
-        await page.waitForLoadState('networkidle');
+        // Removed networkidle - wait directly for the result text
         await page.getByText('result found', { exact: false }).waitFor({ state: 'visible', timeout: 15000 });
         console.log('[DASH] Search results loaded, attempting to view report...');
 
@@ -53,11 +64,19 @@ const runDashOntarioWorkflow = async (license, onBehalfOf = "25 Years - Intact -
         for (let attempt = 1; attempt <= MAX_VIEW_RETRIES; attempt++) {
             try {
                 await page.getByTestId('btnViewReport0').click();
-                await page.waitForLoadState('networkidle');
+
+                // Wait for either the PDF button or error text instead of all network traffic
+                const pdfBtn = page.getByRole('button', { name: 'Open PDF' });
+                const errorTxt = page.getByText('System error', { exact: false });
+                
+                await Promise.race([
+                    pdfBtn.waitFor({ state: 'visible', timeout: 15000 }).catch(() => {}),
+                    errorTxt.waitFor({ state: 'visible', timeout: 15000 }).catch(() => {})
+                ]);
 
                 // Check if the DASH website itself returned an error page
-                const pageContent = await page.textContent('body');
-                if (pageContent.includes('System error')) {
+                if (await errorTxt.isVisible()) {
+                    const pageContent = await page.textContent('body');
                     throw new Error(`DASH returned: "${pageContent.trim().substring(0, 200)}"`);
                 }
 
@@ -101,7 +120,7 @@ const runDashOntarioWorkflow = async (license, onBehalfOf = "25 Years - Intact -
 
                 // Navigate back to search results and retry
                 console.log('[DASH] Navigating back to retry...');
-                await page.goBack({ waitUntil: 'networkidle' });
+                await page.goBack({ waitUntil: 'domcontentloaded' });
                 // Re-wait for the results page to be ready
                 await page.getByText('result found', { exact: false }).waitFor({ state: 'visible', timeout: 15000 });
                 // Brief pause before retry
