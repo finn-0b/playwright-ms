@@ -2,27 +2,23 @@ const { launchBrowser } = require('./baseBrowser');
 
 const MAX_VIEW_RETRIES = 3;
 
-// Queue to prevent concurrent DASH sessions — the site only supports one login at a time
-let runningPromise = null;
+// Proper sequential queue — each request waits for ALL previous ones to complete
+// before starting its own fresh browser session
+let queue = Promise.resolve();
 
 const runDashOntarioWorkflow = async (license, onBehalfOf = "25 Years - Intact - All") => {
-    // If a workflow is already running, wait for it to finish first, then run
-    if (runningPromise) {
-        console.log('[DASH] Another workflow is in progress, queuing this request...');
-        try {
-            await runningPromise;
-        } catch {
-            // Previous run failed — that's fine, we still proceed with ours
-        }
-    }
+    console.log('[DASH] Queuing request...');
 
-    runningPromise = _runWorkflow(license, onBehalfOf);
+    // Chain onto the existing queue — this request won't start until all previous resolve/reject
+    const result = queue.then(() => {
+        console.log('[DASH] Starting fresh workflow from queue...');
+        return _runWorkflow(license, onBehalfOf);
+    });
 
-    try {
-        return await runningPromise;
-    } finally {
-        runningPromise = null;
-    }
+    // Advance the queue pointer, swallowing errors so the next item always runs
+    queue = result.catch(() => { });
+
+    return result;
 };
 
 const _runWorkflow = async (license, onBehalfOf) => {
@@ -77,8 +73,8 @@ const _runWorkflow = async (license, onBehalfOf) => {
                 const errorTxt = page.getByText('System error', { exact: false });
 
                 await Promise.race([
-                    pdfBtn.waitFor({ state: 'visible', timeout: 15000 }).catch(() => {}),
-                    errorTxt.waitFor({ state: 'visible', timeout: 15000 }).catch(() => {})
+                    pdfBtn.waitFor({ state: 'visible', timeout: 15000 }).catch(() => { }),
+                    errorTxt.waitFor({ state: 'visible', timeout: 15000 }).catch(() => { })
                 ]);
 
                 if (await errorTxt.isVisible()) {
