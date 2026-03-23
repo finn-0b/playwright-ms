@@ -53,21 +53,25 @@ const _runWorkflow = async (license, onBehalfOf) => {
         await page.getByRole('button', { name: 'Sign in' }).click();
         await page.getByRole('button', { name: 'No' }).click();
 
-        await page.getByTestId('menuTile-ninetyDays').click();
+        await page.getByTestId('menuTile-driverReport').click();
 
-        try {
-            await page.getByRole('button', { name: 'OK' }).click({ timeout: 500 });
-            console.log('[DASH] Cookie banner dismissed');
-        } catch { }
+        await page.getByTestId('driverLicenceNumber').click();
+        await page.getByTestId('driverLicenceNumber').fill(license);
+
+        await page.getByRole('textbox', { name: 'All provinces' }).click();
+        await page.getByRole('option', { name: 'Ontario' }).click();
+
+        await page.locator('#numberOfYears').click();
+        await page.getByRole('option', { name: `${onBehalfOf}` }).click();
 
         await page.getByTestId('btnSearch').click();
-        await page.getByText('result found', { exact: false }).waitFor({ state: 'visible', timeout: 15000 });
+
         console.log('[DASH] Search results loaded, attempting to view report...');
 
         let pdfBuffer;
         for (let attempt = 1; attempt <= MAX_VIEW_RETRIES; attempt++) {
             try {
-                await page.getByTestId('btnViewReport0').click();
+                await page.getByTestId('getReportBtn').click();
 
                 const pdfBtn = page.getByRole('button', { name: 'Open PDF' });
                 const errorTxt = page.getByText('System error', { exact: false });

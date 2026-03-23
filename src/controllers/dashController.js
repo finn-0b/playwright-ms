@@ -4,7 +4,7 @@ const runReport = async (req, res) => {
     console.log(`[DASH] ✅ runReport handler reached at ${new Date().toISOString()}`);
     try {
         console.log('[DASH] Starting DASH Ontario workflow...');
-        const pdfBuffer = await dashService.runDashOntarioWorkflow();
+        const pdfBuffer = await dashService.runDashOntarioWorkflow(req.body.license, req.body.onBehalfOf);
 
         console.log(`[DASH] Workflow complete. PDF buffer size: ${pdfBuffer.length}`);
         res.setHeader('Content-Type', 'application/pdf');

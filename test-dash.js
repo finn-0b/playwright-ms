@@ -17,6 +17,10 @@ const dashController = require('./src/controllers/dashController');
         };
 
         const req = {};
+        req.body = {
+            license: '123456789',
+            onBehalfOf: '25 Years - Intact - All'
+        };
         await dashController.runReport(req, mockRes);
 
         console.log('✅ Success! PDF received. Buffer size:', capturedBuffer ? capturedBuffer.length : 'undefined');
